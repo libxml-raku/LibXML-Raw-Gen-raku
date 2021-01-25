@@ -1,0 +1,20 @@
+{
+  "auth": "cpan:WARRINGD",
+  "authors": [
+    "David Warring"
+  ],
+  "build-depends": [
+    "LibraryMake"
+  ],
+  "depends": [
+    "LibXML",
+    "Method::Also",
+    "File::Temp"
+  ],
+  "description": "Experimental generated Raku bindings to the libxml2 native library",
+  "license": "Artistic-2.0",
+  "name": "LibXML::Raw::Gen",
+  "perl": "6",
+  "provides": {
+  }
+}

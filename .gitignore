@@ -1,0 +1,11 @@
+*~
+.*
+*.o
+Makefile
+blib/
+*.gz
+resources
+LibXML-RAW-Gen*
+.gitignore
+etc/libxml2-api.xml
+etc/LibXML

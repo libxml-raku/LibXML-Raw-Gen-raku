@@ -63,7 +63,8 @@
     "LibXML::Raw::Gen::xmlwriter": "lib/LibXML/Raw/Gen/xmlwriter.rakumod",
     "LibXML::Raw::Gen::xpath": "lib/LibXML/Raw/Gen/xpath.rakumod",
     "LibXML::Raw::Gen::xpathInternals": "lib/LibXML/Raw/Gen/xpathInternals.rakumod",
-    "LibXML::Raw::Gen::xpointer": "lib/LibXML/Raw/Gen/xpointer.rakumod"
+    "LibXML::Raw::Gen::xpointer": "lib/LibXML/Raw/Gen/xpointer.rakumod",
+    "LibXML::Raw::Meta": "lib/LibXML/Raw/Meta.rakumod"
   },
   "resources": [
       "libxml2-api.xml"

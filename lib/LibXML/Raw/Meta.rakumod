@@ -10,11 +10,16 @@ my subset FunctionDefElem of LibXML::Element where .tagName eq 'function';
 my subset StructDefElem of LibXML::Element where .tagName eq 'struct';
 my subset TypeDefElem of LibXML::Element where .tagName eq 'typedef';
 
+role Sym {
+    method name {...}
+}
+
 has LibXML::Document $.doc is built;
 has LibXML::Element  $!Root;
 class File {...}
 class Struct {...}
-has File  %!Files handles<AT-KEY>;
+has File   %!Files; # files by name
+has File   %!Source; # files by symbol
 has Struct %!Structs;
 
 class Type {
@@ -65,16 +70,15 @@ multi sub abbrev($name where /(<[A..Z]><[a..z]>*)$/, $base where /($($0))$/) {
 }
 multi sub abbrev($name, $type) is default { $name }
 
-class Function {
+class Function does Sym {
     has $.name;
     has $.info;
     has Field $.return;
     has Field @.args;
-    has $.lib = 'XML2';
     sub arg-str(Field:D $_) {
         .type.Str ~ ' $' ~ .name;
     }
-    method Str(:$method) {
+    method Str(:$method, :$lib!) {
         my @args = @!args.clone;
         my $ret-type = .type with $!return;
         my $ret-str = do with $ret-type { " --> " ~ $_ } // '';
@@ -87,26 +91,26 @@ class Function {
         my $sym = $short-name eq $!name ?? ($method ?? '' !! " is export") !! " is symbol('$!name')";
 
         my $decl = $method ?? 'method' !! 'our sub';
-        "$decl $short-name\({$arg-str}{$ret-str}\) is native\($!lib\)$sym \{*\}$info";
+        "$decl $short-name\({$arg-str}{$ret-str}\) is native\($lib\)$sym \{*\}$info";
     }
 }
 
-class Struct {
+class Struct does Sym {
     has $.name;
     has Field @.fields;
     has Function @.subs;
     has Function @.methods;
 }
 
-class Typedef {
+class Typedef does Sym {
     has $.name;
     has $.type;
 }
 
 class File {
     has $.name;
-    has $.summary;
-    has $.description;
+    has $.summary is rw;
+    has $.description is rw;
     has Hash %.enums;
     has Typedef @.typedefs;
     has Struct @.structs;
@@ -124,8 +128,13 @@ method !process-files(Str:D $xpath) {
         my $name = .Str with .<@name>;
         my $summary = .<summary>[0].textContent;
         my $description = .<description>[0].textContent;
-        my File $file .= new: :$name, :$summary, :$description;
-        %!Files{$file.name} = $file;
+        with %!Files{$name} {
+            .summary = $_ with $summary;
+            .description = $_ with $description;
+        }
+        else {
+            $_ .= new: :$name, :$summary, :$description;
+        }
         $*ERR.print('.');
     }
 }
@@ -192,6 +201,7 @@ method !process-functions(Str:D $xpath) {
             }
             else {
                 my $file = %!Files{$file-name} //= File.new: :name($file-name);
+                %!Source{$name} //= $file;
                 $file.subs.push: $function;
             }
         }
@@ -208,6 +218,7 @@ method !process-structs(Str:D $xpath) {
         my Struct $struct .= new: :$name;
         self!process-struct-fields($_, 'field', :$struct);
         %!Structs{$name} //= $struct;
+        %!Source{$name} //= $file;
         $file.structs.push: $struct;
         $*ERR.print('*');
     }
@@ -223,6 +234,7 @@ method !process-typedefs(Str:D $xpath) {
             my $file = %!Files{$file-name} //= File.new: :name($file-name);
             my Typedef $typedef .= new: :$name, :$type;
             $file.typedefs.push: $typedef;
+            %!Source{$name} //= $file;
             $*ERR.print('T');
         }
     }
@@ -230,6 +242,10 @@ method !process-typedefs(Str:D $xpath) {
 
 method files {
     %!Files.values.sort(*.name);
+}
+
+method source-file(Str $sym-name) {
+    %!Source{$sym-name};
 }
 
 submethod TWEAK(:$file = self.source) {
